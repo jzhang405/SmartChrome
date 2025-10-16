@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChromLLM</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>ChromLLM</h1>
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Disconnected</span>
+            </div>
+        </header>
+
+        <main class="main">
+            <section class="content-extraction">
+                <button id="extractBtn" class="btn btn-primary">
+                    Extract Page Content
+                </button>
+                <div id="extractionStatus" class="extraction-status"></div>
+            </section>
+
+            <section class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="welcome-message">
+                        <p>Welcome to ChromLLM! Extract page content and ask questions about it.</p>
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <textarea 
+                        id="messageInput" 
+                        placeholder="Ask a question about the page content..."
+                        rows="3"
+                    ></textarea>
+                    <button id="sendBtn" class="btn btn-send" disabled>
+                        Send
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="settings-link">
+                <a href="options.html" target="_blank">Settings</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
