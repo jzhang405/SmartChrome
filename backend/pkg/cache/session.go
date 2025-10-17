@@ -100,7 +100,6 @@ func (s *SessionCache) StoreMessage(ctx context.Context, message *models.Message
 func (s *SessionCache) GetConversationMessages(ctx context.Context, conversationID string, limit, offset int) ([]*models.Message, error) {
 	// This is a simplified implementation - in production, you might want to use
 	// Redis sorted sets for better pagination support
-	pattern := fmt.Sprintf("message:*")
 	
 	// For now, return empty list - this would need to be implemented based on your specific Redis setup
 	// and how you want to store message lists

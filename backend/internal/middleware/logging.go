@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"

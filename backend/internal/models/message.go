@@ -8,7 +8,7 @@ type MessageType string
 
 const (
 	UserQuestion MessageType = "user_question"
-	LLMResponse  MessageType = "llm_response"
+	LLMReply     MessageType = "llm_response"
 )
 
 type Message struct {

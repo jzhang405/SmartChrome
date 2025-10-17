@@ -10,24 +10,71 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jzhang405/SmartChrome/backend/config"
 	"github.com/jzhang405/SmartChrome/backend/internal/handlers"
 	"github.com/jzhang405/SmartChrome/backend/internal/middleware"
 	"github.com/jzhang405/SmartChrome/backend/pkg/cache"
+	"github.com/jzhang405/SmartChrome/backend/pkg/llm"
 )
 
 func main() {
 	// Initialize configuration
-	config := loadConfig()
+	config := config.Load()
 
 	// Initialize Redis client
-	redisClient, err := cache.NewRedisClient(config.RedisURL, "", 0)
+	redisClient, err := cache.NewRedisClient(config.Redis.URL, config.Redis.Password, config.Redis.DB)
 	if err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
 	defer redisClient.Close()
 
+	// Initialize LLM client with multiple providers
+	llmClient := llm.NewLLMClient()
+	
+	// Register configured LLM providers
+	for _, llmConfig := range config.LLMs {
+		var provider llm.LLMProvider
+		var err error
+
+		switch llmConfig.Provider {
+		case "openai":
+			provider, err = llm.NewOpenAIProvider(
+				llmConfig.APIKey,
+				llmConfig.BaseURL,
+				llmConfig.Model,
+			)
+		case "deepseek":
+			provider, err = llm.NewDeepSeekProvider(
+				llmConfig.APIKey,
+				llmConfig.BaseURL,
+				llmConfig.Model,
+			)
+		case "douban":
+			provider, err = llm.NewDoubanProvider(
+				llmConfig.APIKey,
+				llmConfig.BaseURL,
+				llmConfig.Model,
+			)
+		default:
+			log.Printf("Unsupported LLM provider: %s", llmConfig.Provider)
+			continue
+		}
+
+		if err != nil {
+			log.Printf("Failed to initialize %s provider: %v", llmConfig.Provider, err)
+			continue
+		}
+
+		llmClient.RegisterProvider(llmConfig.Provider, provider)
+		
+		// Set as default if this is the default provider
+		if llmConfig.IsDefault {
+			llmClient.SetDefaultProvider(llmConfig.Provider)
+		}
+	}
+
 	// Initialize JWT middleware
-	jwtMiddleware := middleware.NewJWTMiddleware(config.JWTSecret)
+	jwtMiddleware := middleware.NewJWTMiddleware(config.Auth.JWTSecret)
 
 	// Initialize Gin router
 	router := gin.Default()
@@ -37,8 +84,8 @@ func main() {
 	router.Use(middleware.LoggingMiddleware())
 	router.Use(middleware.ErrorMiddleware())
 
-	// Initialize handlers
-	h := handlers.NewHandlers(redisClient, jwtMiddleware)
+	// Initialize handlers with LLM client
+	h := handlers.NewHandlers(redisClient, jwtMiddleware, llmClient)
 
 	// API routes
 	api := router.Group("/v1")
@@ -63,7 +110,7 @@ func main() {
 
 	// Start server
 	srv := &http.Server{
-		Addr:    ":" + config.Port,
+		Addr:    ":" + config.Server.Port,
 		Handler: router,
 	}
 
@@ -74,7 +121,7 @@ func main() {
 		}
 	}()
 
-	log.Printf("Server started on port %s", config.Port)
+	log.Printf("Server started on port %s", config.Server.Port)
 
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
@@ -90,25 +137,4 @@ func main() {
 	}
 
 	log.Println("Server exited")
-}
-
-type Config struct {
-	Port      string
-	RedisURL  string
-	JWTSecret string
-}
-
-func loadConfig() Config {
-	return Config{
-		Port:      getEnv("PORT", "8080"),
-		RedisURL:  getEnv("REDIS_URL", "localhost:6379"),
-		JWTSecret: getEnv("JWT_SECRET", "your-secret-key"),
-	}
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
